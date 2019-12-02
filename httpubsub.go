@@ -6,11 +6,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"strings"
-	"sync"
+	// "fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
+	"sync"
 )
 
 // type Publisher struct {
@@ -21,7 +21,7 @@ import (
 // }
 
 type PS_Client struct {
-	id string
+	id   string
 	pump chan []byte
 }
 
@@ -35,7 +35,7 @@ func pub(w http.ResponseWriter, r *http.Request, c PS_Client) {
 
 	// Now, Publish to Subscribers
 	body, err := ioutil.ReadAll(r.Body)
-	if (err != nil) {
+	if err != nil {
 		// Error of some type
 		// body = ""
 	}
@@ -49,7 +49,7 @@ func pub(w http.ResponseWriter, r *http.Request, c PS_Client) {
 func sub(w http.ResponseWriter, r *http.Request, c PS_Client) {
 
 	// Wait for a write to this channel
-	body := <- c.pump
+	body := <-c.pump
 	w.Write(body)
 
 }
@@ -60,7 +60,7 @@ func sub(w http.ResponseWriter, r *http.Request, c PS_Client) {
 func dpsRouter(w http.ResponseWriter, r *http.Request) {
 
 	// Find Which Channel It Is
-	p := strings.Trim(r.URL.Path, "/");
+	p := strings.Trim(r.URL.Path, "/")
 
 	// Get this Channel from the Map
 	ps_client_sync.RLock()
@@ -68,7 +68,7 @@ func dpsRouter(w http.ResponseWriter, r *http.Request) {
 	ps_client_sync.RUnlock()
 
 	// or create, if not found
-	if ("" == c.id) {
+	if "" == c.id {
 		c.id = p
 		c.pump = make(chan []byte)
 
@@ -78,28 +78,28 @@ func dpsRouter(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	switch (r.Method) {
+	switch r.Method {
 	// case "DELETE":
 	// 	del(w, r, c)
 	// 	break;
 	case "GET":
-		sub(w, r, c);
-		break;
+		sub(w, r, c)
+		break
 	case "POST":
-		pub(w, r, c);
-		break;
+		pub(w, r, c)
+		break
 	default:
 		// Error
-		break;
+		break
 	}
 
 }
 
 func main() {
 
-	hpsPort := flag.String("port", "", "Listen Address (default is \":8080\" for standard, \":8443\" for TLS)")
-	crtFile := flag.String("tls", "", "A PEM formatted SSL/TLS Certificate")
-	keyFile := flag.String("tls-key", "", "A Key for the SSL/TLS Certificate")
+	port := flag.String("port", "", "Listen Address (default is \":8080\" for standard, \":8443\" for TLS)")
+	cert := flag.String("cert", "", "A PEM formatted SSL/TLS Certificate")
+	certKey := flag.String("cert-key", "", "A Key for the SSL/TLS Certificate")
 	flag.Parse()
 
 	ps_client_list = make(map[string]PS_Client)
@@ -109,19 +109,19 @@ func main() {
 	http.HandleFunc("/", dpsRouter)
 
 	// SSL, we hope
-	if (len(*crtFile) > 0) {
-		if (0 == len(*hpsPort)) {
-			*hpsPort = ":8443"
+	if len(*cert) > 0 {
+		if 0 == len(*port) {
+			*port = ":8443"
 		}
-		err := http.ListenAndServeTLS(*hpsPort, *crtFile, *keyFile, nil)
+		err := http.ListenAndServeTLS(*port, *cert, *certKey, nil)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		if (0 == len(*hpsPort)) {
-			*hpsPort = ":8080"
+		if 0 == len(*port) {
+			*port = ":8080"
 		}
-		err := http.ListenAndServe(*hpsPort, nil)
+		err := http.ListenAndServe(*port, nil)
 		if err != nil {
 			panic(err)
 		}
