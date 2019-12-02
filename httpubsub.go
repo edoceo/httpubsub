@@ -5,6 +5,7 @@
 package main
 
 import (
+	"flag"
 	// "fmt"
 	"strings"
 	"io/ioutil"
@@ -88,11 +89,28 @@ func dpsRouter(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 
+	hpsPort := flag.String("port", "", "Listen Address (default is \":8080\" for standard, \":8443\" for TLS)")
+	crtFile := flag.String("tls", "", "A PEM formatted SSL/TLS Certificate")
+	keyFile := flag.String("tls-key", "", "A Key for the SSL/TLS Certificate")
+	flag.Parse()
+
 	ps_client_list = make(map[string]PS_Client)
 
 	// http.HandleFunc("/info", viewInfo)
 	// http.HandleFunc("/status", viewInfo)
 	http.HandleFunc("/", dpsRouter)
-	http.ListenAndServe(":8080", nil)
+
+	// SSL, we hope
+	if (len(*crtFile) > 0) {
+		err := http.ListenAndServeTLS(*hpsPort, *crtFile, *keyFile, nil)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err := http.ListenAndServe(*hpsPort, nil)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 }
