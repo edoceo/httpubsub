@@ -25,3 +25,8 @@ Then someone asked for source.
 Then after seeing the service I thought: "it's just channels"
 And I posted that I expected to see a clone in Go real soon.
 Then an associate called me out to post it.
+
+## Alternatives
+
+* https://github.com/patchbay-pub/patchbay-simple-server
+* https://github.com/olup/patchcreek
