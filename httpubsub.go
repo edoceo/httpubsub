@@ -6,52 +6,76 @@ package main
 
 import (
 	"flag"
-	// "fmt"
+	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strings"
-	"sync"
+	"time"
+	"github.com/oklog/ulid"
 )
 
-// type Publisher struct {
-// }
-//
-// type Subscriber struct {
-//
-// }
+// I like these as IDs
+func create_ulid() string {
+	t := time.Now()
+	entropy := ulid.Monotonic(rand.New(rand.NewSource(t.UnixNano())), 0)
+	u, _ := ulid.New(ulid.Timestamp(t), entropy)
+	return u.String()
+	// Output: 0000XSNJG0MQJHBF4QX1EFD6Y3
+}
 
 type PS_Client struct {
 	id   string
 	pump chan []byte
 }
 
-var ps_client_sync sync.RWMutex
-var ps_client_list map[string]PS_Client
+var pubsub_channel_list = New_PubSub_Channel_List() // new(PubSub_Channel_List)
 
 /**
  * POST/Publish Handler
  */
-func pub(w http.ResponseWriter, r *http.Request, c PS_Client) {
+func pub(w http.ResponseWriter, r *http.Request, p string) {
+
+	fmt.Printf("pub(w, r, %s)\n", p)
+
+	ch, err := pubsub_channel_list.Find(p)
+	if err != nil {
+		w.Write([]byte("No Subscribers\n"))
+		return
+	}
 
 	// Now, Publish to Subscribers
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		// Error of some type
 		// body = ""
+		w.Write([]byte("Read Error"))
+		return
 	}
-	c.pump <- body
+
+	ch.Send(body);
+	// pubsub_channel_list.Delete(ch.id)
 
 }
 
 /**
  * GET/Subscribe Handler
  */
-func sub(w http.ResponseWriter, r *http.Request, c PS_Client) {
+func sub(w http.ResponseWriter, r *http.Request, p string) {
 
-	// Wait for a write to this channel
-	body := <-c.pump
-	w.Write(body)
+	// Try to see if this Channel is already register
+	fmt.Printf("sub(w, r, %s)\n", p)
 
+	ch, _ := pubsub_channel_list.Find(p)
+	if "" == ch.id {
+		ch = pubsub_channel_list.Create(p)
+	}
+
+	ch.Sub(w)
+
+	// Should Drop Channel & Client Here
+
+	fmt.Printf("sub() <<<\n")
 }
 
 /**
@@ -62,31 +86,23 @@ func dpsRouter(w http.ResponseWriter, r *http.Request) {
 	// Find Which Channel It Is
 	p := strings.Trim(r.URL.Path, "/")
 
-	// Get this Channel from the Map
-	ps_client_sync.RLock()
-	c := ps_client_list[p]
-	ps_client_sync.RUnlock()
-
-	// or create, if not found
-	if "" == c.id {
-		c.id = p
-		c.pump = make(chan []byte)
-
-		ps_client_sync.Lock()
-		ps_client_list[p] = c
-		ps_client_sync.Unlock()
-
+	if (0 == len(p)) {
+		// Write HTML And Exit
+		var html = "<html><head><title>httpubsub</title></head><body><h1>httppubsub</h1><p>Specify a path to Publish or Subscibe to</p><pre>curl http://localhost:8080/sub123\n  ** waiting **</pre><p>Then in another terminal:</p><pre>curl -X POST http://localhost:8080/sub123</pre><p>And watch the subscribe side emit any posted data</p>"
+		w.Write([]byte(html))
+		return
 	}
 
+	// PUBSUBing
 	switch r.Method {
 	// case "DELETE":
 	// 	del(w, r, c)
 	// 	break;
 	case "GET":
-		sub(w, r, c)
+		sub(w, r, p)
 		break
 	case "POST":
-		pub(w, r, c)
+		pub(w, r, p)
 		break
 	default:
 		// Error
@@ -101,8 +117,6 @@ func main() {
 	cert := flag.String("cert", "", "A PEM formatted SSL/TLS Certificate")
 	certKey := flag.String("cert-key", "", "A Key for the SSL/TLS Certificate")
 	flag.Parse()
-
-	ps_client_list = make(map[string]PS_Client)
 
 	// http.HandleFunc("/info", viewInfo)
 	// http.HandleFunc("/status", viewInfo)
