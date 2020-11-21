@@ -15,7 +15,7 @@ import (
  */
 type PubSub_Channel struct {
 	id string
-	sync sync.RWMutex
+	sync sync.Mutex
 	list map[string]PS_Client
 }
 
@@ -32,11 +32,17 @@ func (ch PubSub_Channel) Send(t []byte) {
 
 	// Should Delete While Iterating?
 	// key_list := keys ch.list // how
+	// https://bitfieldconsulting.com/golang/map-iteration
 	// Then I can keys and delete that item after I pump
+	// https://stackoverflow.com/questions/21362950/getting-a-slice-of-keys-from-a-map
+	ch.sync.Lock()
+	defer ch.sync.Unlock()
+
 	for cl, sub := range ch.list {
 		sub.pump <- t
 		delete(ch.list, cl)
 	}
+
 
 }
 
@@ -54,8 +60,9 @@ func (ch PubSub_Channel) Sub(w http.ResponseWriter) {
 
 	// Add to Channel
 	ch.sync.Lock()
+	defer ch.sync.Unlock()
+
 	ch.list[c.id] = c
-	ch.sync.Unlock()
 
 	// Wait for a write to this channel
 	body := <-c.pump
