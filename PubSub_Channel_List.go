@@ -6,7 +6,7 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	// "fmt"
 	"sync"
 )
 
@@ -21,11 +21,14 @@ type PubSub_Channel_List struct {
  */
 func (cl PubSub_Channel_List) Create(p string) PubSub_Channel {
 
-	fmt.Printf("PubSub_Channel_List.Create(p=%s)\n", p)
+	// fmt.Printf("PubSub_Channel_List.Create(p=%s)\n", p)
 
 	ch := PubSub_Channel{}
 	ch.id = p
 	ch.list = make(map[string]PS_Client)
+
+	cl.sync.Lock()
+	defer cl.sync.Unlock();
 
 	cl.channel_list[p] = ch
 
@@ -43,11 +46,12 @@ func (cl PubSub_Channel_List) Delete(p string) {
  */
 func (cl PubSub_Channel_List) Find(p string) (PubSub_Channel, error) {
 
-	fmt.Printf("PubSub_Channel_List.Find(%s)\n", p)
+	// fmt.Printf("PubSub_Channel_List.Find(%s)\n", p)
 
 	cl.sync.RLock()
+	defer cl.sync.RUnlock()
+
 	ch, ok := cl.channel_list[p]
-	cl.sync.RUnlock()
 
 	if (ok) {
 		return ch, nil

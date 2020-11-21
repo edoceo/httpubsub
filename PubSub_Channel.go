@@ -5,7 +5,7 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"net/http"
 	"sync"
 )
@@ -15,7 +15,7 @@ import (
  */
 type PubSub_Channel struct {
 	id string
-	sync sync.Mutex
+	sync sync.RWMutex
 	list map[string]PS_Client
 }
 
@@ -24,7 +24,7 @@ type PubSub_Channel struct {
  */
 func (ch PubSub_Channel) Send(t []byte) {
 
-	fmt.Printf("PubSub_Channel.Send(t) (%d subs)\n", len(ch.list));
+	// fmt.Printf("PubSub_Channel.Send(t) (%d subs)\n", len(ch.list));
 
 	// @todo Make this Non-Blocking to Instantly Respond if there are no listeners
 	// And we need to remove the channel once we've done this
@@ -51,7 +51,7 @@ func (ch PubSub_Channel) Send(t []byte) {
  */
 func (ch PubSub_Channel) Sub(w http.ResponseWriter) {
 
-	fmt.Printf("Sub(w)\n")
+	// fmt.Printf("Sub(w)\n")
 
 	// Subscriber Client
 	c := PS_Client{}
@@ -67,5 +67,7 @@ func (ch PubSub_Channel) Sub(w http.ResponseWriter) {
 	// Wait for a write to this channel
 	body := <-c.pump
 	w.Write(body)
+
+	// fmt.Printf("PubSub_Channel.Sub() <<<\n")
 
 }
