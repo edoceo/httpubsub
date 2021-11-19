@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"github.com/oklog/ulid"
 )
 
@@ -24,12 +25,13 @@ func create_ulid() string {
 	// Output: 0000XSNJG0MQJHBF4QX1EFD6Y3
 }
 
+//
 type PS_Client struct {
 	id   string
 	pump chan []byte
 }
 
-var pubsub_channel_list = New_PubSub_Channel_List() // new(PubSub_Channel_List)
+var pubsub_channel_list = New_PubSub_Channel_List()
 
 /**
  * POST/Publish Handler
@@ -53,7 +55,7 @@ func pub(w http.ResponseWriter, r *http.Request, p string) {
 		return
 	}
 
-	ch.Send(body);
+	ch.Send(body)
 	// pubsub_channel_list.Delete(ch.id)
 
 }
@@ -86,7 +88,7 @@ func dpsRouter(w http.ResponseWriter, r *http.Request) {
 	// Find Which Channel It Is
 	p := strings.Trim(r.URL.Path, "/")
 
-	if (0 == len(p)) {
+	if 0 == len(p) {
 		// Write HTML And Exit
 		var html = "<html><head><title>httpubsub</title></head><body><h1>httppubsub</h1><p>Specify a path to Publish or Subscibe to</p><pre>curl http://localhost:8080/sub123\n  ** waiting **</pre><p>Then in another terminal:</p><pre>curl -X POST http://localhost:8080/sub123</pre><p>And watch the subscribe side emit any posted data</p>"
 		w.Write([]byte(html))
@@ -114,6 +116,7 @@ func dpsRouter(w http.ResponseWriter, r *http.Request) {
 func main() {
 
 	port := flag.String("port", "", "Listen Address (default is \":8080\" for standard, \":8443\" for TLS)")
+	// secret := flag.String("secret", "", "A Secret Value")
 	cert := flag.String("cert", "", "A PEM formatted SSL/TLS Certificate")
 	certKey := flag.String("cert-key", "", "A Key for the SSL/TLS Certificate")
 	flag.Parse()
